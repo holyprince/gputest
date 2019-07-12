@@ -1,2 +1,2 @@
-# GPU
+# gpu test
 Some gpu code
