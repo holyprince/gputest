@@ -13,7 +13,7 @@ https://developer.nvidia.com/cuda-education
 multi gpu test code from 
 https://github.com/bblakeley/Multi_GPU_FFT_check/blob/master/Multi_GPU_FFT_check.cu
 All single GPU cuFFT FFTs return output the data in natural order, that is the ordering of the result is the same as if a DFT had been performed on the data. Some Fast Fourier Transforms produce intermediate results where the data is left in a permutation of the natural output. When batch is one, data is left in the GPU memory in a permutation of the natural output. [cufftlibrary.pdf]
-
+```c++
 typedef enum cufftResult_t {
 CUFFT_SUCCESS = 0, // The cuFFT operation was successful
 CUFFT_INVALID_PLAN = 1, // cuFFT was passed an invalid plan handle
@@ -37,3 +37,4 @@ parameters given.
 CUFFT_LICENSE_ERROR = 15, // Used in previous versions.
 CUFFT_NOT_SUPPORTED = 16 // Operation is not supported for parameters given.
 } cufftResult;
+```
