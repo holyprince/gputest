@@ -71,4 +71,25 @@ static void HandleError( hipError_t err, const char *file, int line )
     }
 }
 
+//from nsight tmeplate : 
+
+#include <cuda.h>
+/**
+ * This macro checks return value of the CUDA runtime call and exits
+ * the application if the call failed.
+ *
+ * See cuda.h for error code descriptions.
+ */
+#define CHECK_CUDA_RESULT(N) {											\
+	CUresult result = N;												\
+	if (result != 0) {													\
+		printf("CUDA call on line %d returned error %d\n", __LINE__,	\
+			result);													\
+		exit(1);														\
+	} }
+
+int main()
+{
+	CHECK_CUDA_RESULT(cuInit(0));
+}
 
