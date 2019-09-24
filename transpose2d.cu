@@ -5,8 +5,8 @@
 #include "cuda.h"
 #include "timer.h"
 
-#define NX 1024
-#define NY 1024
+#define NX 2048
+#define NY 2048
 
 #define K 16
 
@@ -55,7 +55,22 @@ __global__ void transpose(float in[], float out[])
 }
 
 
-__global__ void transpose_parallel_per_element_tiled(float in[], float out[])
+__global__ void transpose_parallel_per_element_tiled1(float in[], float out[])
+{
+  int in_corner_i = blockIdx.x * K, in_corner_j = blockIdx.y * K;
+  int out_corner_i = blockIdx.y * K, out_corner_j = blockIdx.x * K;
+
+  int x = threadIdx.x, y = threadIdx.y;
+
+  __shared__ float tile[K][K];
+
+  tile[y][x] = in[(in_corner_i + x) + (in_corner_j + y) * NX];
+  __syncthreads();
+  out[(out_corner_i + x) + (out_corner_j + y) * NX] = tile[x][y];
+}
+
+
+__global__ void transpose_parallel_per_element_tiled2(float in[], float out[])
 {
   int in_corner_i = blockIdx.x * K, in_corner_j = blockIdx.y * K;
   int out_corner_i = blockIdx.y * K, out_corner_j = blockIdx.x * K;
@@ -68,6 +83,43 @@ __global__ void transpose_parallel_per_element_tiled(float in[], float out[])
   __syncthreads();
   out[(out_corner_i + x) + (out_corner_j + y) * NX] = tile[x][y];
 }
+#define TILE_DIM 32
+#define BLOCK_ROWS 8
+
+__global__ void transpose_cudaapi(float in[], float out[],int width,int height)
+{
+	int xIndex = blockIdx.x *TILE_DIM + threadIdx.x;
+	int yIndex = blockIdx.y *TILE_DIM + threadIdx.y;
+
+	int index_in = xIndex+ width*yIndex;
+	int index_out = yIndex+ height *xIndex;
+	for(int i=0;i<TILE_DIM ; i+=BLOCK_ROWS){
+		out[index_out +i]= in[index_in + i* width];
+	}
+}
+
+__global__ void transpose_cudaapi_shared(float in[], float out[],int width,int height)
+{
+	__shared__ float tile[TILE_DIM][TILE_DIM+1];
+
+	int xIndex = blockIdx.x *TILE_DIM + threadIdx.x;
+	int yIndex = blockIdx.y *TILE_DIM + threadIdx.y;
+	int index_in = xIndex+ width*yIndex;
+
+	xIndex= blockIdx.y * TILE_DIM+ threadIdx.x;
+	yIndex = blockIdx.x * TILE_DIM + threadIdx.y;
+	int index_out = xIndex+ yIndex*height;
+
+	for(int i=0;i<TILE_DIM ; i+=BLOCK_ROWS){
+		tile[threadIdx.y+i][threadIdx.x] =  in[index_in + i* width];
+	}
+	__syncthreads();
+
+	for(int i=0;i<TILE_DIM ; i+=BLOCK_ROWS ){
+		out[index_out + i*height] = tile[threadIdx.x][threadIdx.y+i];
+	}
+}
+
 
 void testbandwidth()
 {
@@ -89,7 +141,6 @@ int main(int argc, char **argv) {
 	float *in = (float *) malloc(numbytes);
 	float *out = (float *) malloc(numbytes);
 	initdata(in);
-
 
 //	transpose_CPU(in,out);
 
@@ -129,7 +180,7 @@ int main(int argc, char **argv) {
 	cudaEventCreate(&stop1);
 	cudaEventRecord(start1, NULL);
 
-	transpose_parallel_per_element_tiled<<<blocks, threads>>>(d_in, d_out);
+	transpose_parallel_per_element_tiled1<<<blocks, threads>>>(d_in, d_out);
 
 	cudaEventRecord(stop1, NULL);
 	cudaEventSynchronize(stop1);
@@ -137,6 +188,61 @@ int main(int argc, char **argv) {
 	cudaEventElapsedTime(&msecTotal1, start1, stop1);
 	printf("Time2  : %f \n",msecTotal1);
 	}
+
+	for(int i=0;i<21;i++)
+	{
+	cudaEvent_t start1;
+	cudaEventCreate(&start1);
+	cudaEvent_t stop1;
+	cudaEventCreate(&stop1);
+	cudaEventRecord(start1, NULL);
+
+	transpose_parallel_per_element_tiled2<<<blocks, threads>>>(d_in, d_out);
+
+	cudaEventRecord(stop1, NULL);
+	cudaEventSynchronize(stop1);
+	float msecTotal1 = 0.0f;
+	cudaEventElapsedTime(&msecTotal1, start1, stop1);
+	printf("Time3  : %f \n",msecTotal1);
+	}
+
+	dim3 threads1(TILE_DIM, BLOCK_ROWS);
+	dim3 blocks1(NX / TILE_DIM, NY / TILE_DIM);
+	//dim3 blocks1((NX + TILE_DIM - 1) / TILE_DIM, (NY + TILE_DIM - 1) / TILE_DIM);
+
+	for(int i=0;i<21;i++)
+	{
+	cudaEvent_t start1;
+	cudaEventCreate(&start1);
+	cudaEvent_t stop1;
+	cudaEventCreate(&stop1);
+	cudaEventRecord(start1, NULL);
+
+	transpose_cudaapi<<<blocks1, threads1>>>(d_in, d_out,NX,NY);
+
+	cudaEventRecord(stop1, NULL);
+	cudaEventSynchronize(stop1);
+	float msecTotal1 = 0.0f;
+	cudaEventElapsedTime(&msecTotal1, start1, stop1);
+	printf("Time4  : %f \n",msecTotal1);
+	}
+	for(int i=0;i<21;i++)
+	{
+	cudaEvent_t start1;
+	cudaEventCreate(&start1);
+	cudaEvent_t stop1;
+	cudaEventCreate(&stop1);
+	cudaEventRecord(start1, NULL);
+
+	transpose_cudaapi_shared<<<blocks1, threads1>>>(d_in, d_out,NX,NY);
+
+	cudaEventRecord(stop1, NULL);
+	cudaEventSynchronize(stop1);
+	float msecTotal1 = 0.0f;
+	cudaEventElapsedTime(&msecTotal1, start1, stop1);
+	printf("Time5  : %f \n",msecTotal1);
+	}
+
 	cudaMemcpy(out, d_out, numbytes, cudaMemcpyDeviceToHost);
 
 
