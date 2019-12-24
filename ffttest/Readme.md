@@ -8,3 +8,7 @@ cufftMakePlan1d 与batch=3的1维FFT效果相同
 ### 10月23日
 1.二维的实数到复数测试没有问题(hermitian) [layoutdim2.cu]
 2.三维的实数到复数的复制也没有问题 [layoutdim3.cu]
+
+
+### 12月24日
+1.FFT内存估算：cufftGetSize2d 比 cufftEstimate2d 更加精确，使用前者。
