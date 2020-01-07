@@ -18,7 +18,7 @@ __host__ ​ __device__ ​const char* cudaGetErrorString ( cudaError_t error )
 //因此，这里，我们就使用这个宏来分析runtime api是否调用正确了：
 checkCudaErrors( cudaMemcpy(p_d, p_h, sizeof(float)*1024, cudaMemcpyHostToDevice) );
 
-
+//method2 start (more used often)
 static void HandleError( cudaError_t err,
                          const char *file,
                          int line ) {
@@ -30,6 +30,7 @@ static void HandleError( cudaError_t err,
 }
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
+//method2 end
 
 #define HANDLE_NULL( a ) {if (a == NULL) { \
                             printf( "Host memory failed in %s at line %d\n", \
