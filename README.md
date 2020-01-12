@@ -38,3 +38,9 @@ CUFFT_LICENSE_ERROR = 15, // Used in previous versions.
 CUFFT_NOT_SUPPORTED = 16 // Operation is not supported for parameters given.
 } cufftResult;
 ```
+
+### 架构及对应的编译参数
+https://docs.nvidia.com/cuda/volta-compatibility-guide/index.html
+https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+https://www.cnblogs.com/phillee/p/12049208.html
+
