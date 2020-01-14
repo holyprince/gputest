@@ -12,3 +12,18 @@ cufftMakePlan1d 与batch=3的1维FFT效果相同
 
 ### 12月24日
 1.FFT内存估算：cufftGetSize2d 比 cufftEstimate2d 更加精确，使用前者。
+
+
+
+			input= (fftw_complex *)malloc(fullsize* 2 * sizeof(fftw_complex));
+			for(int i=0;i<fullsize;i++)
+			{
+				input[i][0]=i%100;
+				input[i][1]=0;
+			}
+			fftw_plan p;
+
+			p= fftw_plan_dft_3d(200, 200, 200 ,input, input, FFTW_BACKWARD, FFTW_ESTIMATE);
+			fftw_execute(p);
+			for(int i=0;i<10;i++)
+				printf("%f %f \n",input[i][0],input[i][1]);
