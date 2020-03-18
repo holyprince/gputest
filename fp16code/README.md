@@ -30,4 +30,8 @@ https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__INTRINSIC__HALF.ht
 		这种情况yz二维整体，好像没有办法使用stride形式表示
 2.将其中一个维度替换成fp16计算
 	按照大小来说，第一个维度换为fp16比较合适
-	
+
+优点：数值范围可能可以cover住
+缺点：内存额外消耗？
+
+
